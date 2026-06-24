@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Sketch to AutoCAD - 2D/3D CAD Vectorization Studio</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Custom Style Sheet -->
+    <link rel="stylesheet" href="/static/styles.css">
+    
+    <!-- React (loaded before Babel so React/ReactDOM globals exist) -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    
+    <!-- Three.js (3D Extrusion Viewer) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <!-- Babel Standalone (for compile-time JSX transform, NOT auto script-tag mode) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="root">
+        <!-- Loader fallback while Babel compiles -->
+        <div style="display: flex; height: 100vh; align-items: center; justify-content: center; background: #070a13; color: #06b6d4; font-family: sans-serif; font-size: 18px;">
+            Initializing CAD Vectorizer...
+        </div>
+    </div>
+
+    <!--
+        Manual fetch + Babel.transform approach.
+        Babel Standalone's automatic transformScriptTags (type="text/babel" src="...")
+        is unreliable with external files. Instead we fetch the JSX source ourselves,
+        transform it with the Babel API, and eval() the result.
+    -->
+    <script>
+        fetch('/static/app.jsx')
+            .then(function(res) { return res.text(); })
+            .then(function(jsxCode) {
+                var output = Babel.transform(jsxCode, {
+                    presets: [['react', { runtime: 'classic' }]]
+                });
+                var script = document.createElement('script');
+                script.textContent = output.code;
+                document.body.appendChild(script);
+            })
+            .catch(function(err) {
+                console.error('Failed to load/compile app.jsx:', err);
+                document.getElementById('root').innerHTML =
+                    '<div style="padding:40px;color:#ef4444;font-family:monospace;">' +
+                    '<h2>JSX Compilation Error</h2><pre>' + err.message + '</pre></div>';
+            });
+    </script>
+</body>
+</html>

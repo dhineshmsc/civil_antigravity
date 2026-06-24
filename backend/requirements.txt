@@ -1,0 +1,7 @@
+fastapi>=0.100.0
+uvicorn>=0.22.0
+python-multipart>=0.0.6
+opencv-python>=4.7.0
+numpy>=1.24.0
+ezdxf>=1.1.0
+reportlab>=4.0.0
