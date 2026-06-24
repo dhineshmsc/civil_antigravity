@@ -426,6 +426,45 @@ function App() {
             addLog(`PDF Export failed: ${err.message}`, 'error');
         });
     };
+
+    // Export vector drawings as Estimate PDF
+    const handleExportEstimatePDF = () => {
+        if (lines.length === 0) {
+            addLog('No plan lines to estimate.', 'warning');
+            return;
+        }
+        
+        addLog('Requesting Estimate PDF layout compilation...', 'info');
+        fetch('/api/export/estimate_pdf', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                lines: lines,
+                dimensions: dimensions,
+                width: imgDimensions.width,
+                height: imgDimensions.height,
+                scale_factor: drawingScale
+            })
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Estimate PDF compilation failed.');
+            return response.blob();
+        })
+        .then(blob => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${selectedFile ? selectedFile.name.split('.')[0] : 'floorplan'}_estimate.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            
+            addLog('Estimate PDF downloaded successfully.', 'success');
+        })
+        .catch(err => {
+            addLog(`Estimate PDF Export failed: ${err.message}`, 'error');
+        });
+    };
     
     // --- 2D Vector CAD Editor SVG Handlers ---
     const getCanvasMouseCoords = (e, svgElement) => {
@@ -526,6 +565,19 @@ function App() {
                 addLog(`New ${activeTool.toUpperCase()} added to plan.`, 'info');
             }
             setDrawTempLine(null);
+        }
+        else if (activeTool === 'text') {
+            const newId = dimensions.length > 0 ? Math.max(...dimensions.map(d => d.id)) + 1 : 1;
+            const newText = {
+                id: newId,
+                x: coords.x,
+                y: coords.y,
+                value: 'Text'
+            };
+            setDimensions(prev => [...prev, newText]);
+            setEditingDim(newText);
+            setDimOverrideText('Text');
+            addLog('Text label added.', 'info');
         }
     };
     
@@ -694,6 +746,18 @@ function App() {
                             </button>
                         </div>
                     </div>
+
+                    <div style={{ marginTop: '15px' }}>
+                        <div className="section-title">
+                            <span>5. Estimates</span>
+                        </div>
+                        <button className="btn btn-outline" style={{ width: '100%', borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }} onClick={handleExportEstimatePDF} disabled={lines.length === 0}>
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" style={{ width: '16px', height: '16px', marginRight: '6px', verticalAlign: 'middle' }}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Download PDF Estimate
+                        </button>
+                    </div>
                 </aside>
                 
                 {/* Main Workspace Area */}
@@ -772,6 +836,11 @@ function App() {
                                 <button className={`tool-btn ${activeTool === 'window' ? 'active' : ''}`} title="Draw Window Segment" onClick={() => setActiveTool('window')}>
                                     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                </button>
+                                <button className={`tool-btn ${activeTool === 'text' ? 'active' : ''}`} title="Add Text" onClick={() => setActiveTool('text')}>
+                                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 15h4.498" />
                                     </svg>
                                 </button>
                                 <button className={`tool-btn ${activeTool === 'delete' ? 'active' : ''}`} title="Delete Entity" onClick={() => setActiveTool('delete')}>

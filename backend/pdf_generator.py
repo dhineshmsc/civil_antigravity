@@ -272,3 +272,105 @@ def generate_pdf(lines, dimensions, rooms=None, text_annotations=None, img_width
         logger.error(f"Error generating PDF: {e}")
         raise e
 
+def generate_estimate_pdf(lines, scale_factor=0.02):
+    """Generates an estimate/invoice PDF based on drawn vectors."""
+    try:
+        from reportlab.lib.pagesizes import letter
+        import math
+        
+        buffer = io.BytesIO()
+        c = canvas.Canvas(buffer, pagesize=letter)
+        width, height = letter
+        
+        # Calculations
+        wall_length = 0.0
+        door_count = 0
+        window_count = 0
+        
+        for line in lines:
+            ltype = line.get('type', 'wall').upper()
+            dx = line['x2'] - line['x1']
+            dy = line['y2'] - line['y1']
+            length_px = math.sqrt(dx**2 + dy**2)
+            length_m = length_px * scale_factor
+            
+            if ltype == 'WALL':
+                wall_length += length_m
+            elif ltype == 'DOOR':
+                door_count += 1
+            elif ltype == 'WINDOW':
+                window_count += 1
+                
+        # Mock prices
+        wall_price = 150.0 # per meter
+        door_price = 400.0 # each
+        window_price = 350.0 # each
+        
+        wall_total = wall_length * wall_price
+        door_total = door_count * door_price
+        window_total = window_count * window_price
+        grand_total = wall_total + door_total + window_total
+        
+        # Header
+        c.setFont("Helvetica-Bold", 24)
+        c.drawString(50, height - 80, "Construction Estimate")
+        
+        c.setFont("Helvetica", 10)
+        c.drawString(50, height - 100, f"Date: {datetime.date.today().strftime('%Y-%m-%d')}")
+        c.drawString(50, height - 115, "Project: Automated 2D Floor Plan Estimate")
+        
+        # Table Header
+        y = height - 160
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(50, y, "Item Description")
+        c.drawString(250, y, "Quantity")
+        c.drawString(350, y, "Unit Price")
+        c.drawString(450, y, "Total")
+        c.line(50, y - 5, 550, y - 5)
+        
+        # Table Rows
+        y -= 25
+        c.setFont("Helvetica", 12)
+        
+        # Walls
+        c.drawString(50, y, "Structural Wall Construction")
+        c.drawString(250, y, f"{wall_length:.2f} m")
+        c.drawString(350, y, f"${wall_price:.2f}")
+        c.drawString(450, y, f"${wall_total:.2f}")
+        y -= 20
+        
+        # Doors
+        c.drawString(50, y, "Door Installation")
+        c.drawString(250, y, f"{door_count}")
+        c.drawString(350, y, f"${door_price:.2f}")
+        c.drawString(450, y, f"${door_total:.2f}")
+        y -= 20
+        
+        # Windows
+        c.drawString(50, y, "Window Installation")
+        c.drawString(250, y, f"{window_count}")
+        c.drawString(350, y, f"${window_price:.2f}")
+        c.drawString(450, y, f"${window_total:.2f}")
+        
+        # Total
+        y -= 30
+        c.line(50, y + 15, 550, y + 15)
+        c.setFont("Helvetica-Bold", 14)
+        c.drawString(350, y, "Grand Total:")
+        c.drawString(450, y, f"${grand_total:.2f}")
+        
+        # Footer
+        c.setFont("Helvetica-Oblique", 10)
+        c.drawString(50, 50, "Note: This is an automated estimate. Final prices may vary.")
+        
+        c.showPage()
+        c.save()
+        
+        pdf_bytes = buffer.getvalue()
+        buffer.close()
+        return pdf_bytes
+        
+    except Exception as e:
+        logger.error(f"Error generating Estimate PDF: {e}")
+        raise e
+

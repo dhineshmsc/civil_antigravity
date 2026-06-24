@@ -179,6 +179,32 @@ async def export_pdf(request: ExportRequest):
         logger.error(f"Error exporting PDF: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/export/estimate_pdf")
+async def export_estimate_pdf(request: ExportRequest):
+    """Generates and streams a PDF estimate for the drawn vectors."""
+    logger.info("Estimate PDF export request received.")
+    try:
+        lines_dict = [line.model_dump() for line in request.lines]
+        
+        from backend.pdf_generator import generate_estimate_pdf
+        
+        pdf_data = generate_estimate_pdf(
+            lines=lines_dict,
+            scale_factor=request.scale_factor
+        )
+        
+        return StreamingResponse(
+            io.BytesIO(pdf_data),
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": "attachment; filename=floorplan_estimate.pdf",
+                "Content-Length": str(len(pdf_data))
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error exporting Estimate PDF: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/export/dwf")
 async def export_dwf(request: ExportRequest):
     """Generates and streams a DWF (Design Web Format) package from verified vectors."""
